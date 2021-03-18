@@ -32,7 +32,7 @@ const struct opCode allOpCodes[] = {
 string OpCodes::getSymbolName(int threeHalfBytes) {
 
     int filteredCode = threeHalfBytes & 0xFC0; // 1111 1100 0000<--- AND that with anything will make sure to get first 6 bits
-    filteredCode /= 0x10; //truncate the last byte
+    filteredCode /= 0x10; //truncate the third digit
     int i;
     for(i =0; i<size; i++) {
         if(allOpCodes[i].opCode == filteredCode) {
@@ -41,10 +41,17 @@ string OpCodes::getSymbolName(int threeHalfBytes) {
     }
 }
 
+/**
+ * This function recieves a hex value in the form 0x111
+ * First checks if it's format 2
+ * Then checks if it's format 3 or 4
+ * Finally returns the format number as an integer value
+ */
 int OpCodes::getFormat(int threeHalfBytes) {
 
-    int filteredCode = threeHalfBytes & 0xFC0;
-    filteredCode /= 0x10;
+    int filteredCode = threeHalfBytes & 0xFC0; // 1111 1100 0000<--- AND that with anything will make sure to get first 6 bits
+    filteredCode /= 0x10; //truncate the third digit
+
     //first check if it's format 2
     int i;
     for(i=0; i<size; i++) {
@@ -57,8 +64,3 @@ int OpCodes::getFormat(int threeHalfBytes) {
     if(isFormat4) return 4;
     return 3;
 }
-
-
-
-
-
