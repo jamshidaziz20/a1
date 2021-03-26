@@ -1,5 +1,4 @@
-
-
+#pragma once
 #include <string>
 
 using namespace std;
@@ -11,6 +10,3 @@ public:
     string getSymbolName(int threeHalfBytes);
     int getFormat(int threeHalfBytes);
 };
-
-
-
