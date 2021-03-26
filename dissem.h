@@ -7,11 +7,11 @@
 #include "OpCodes.h"
 #include <map>
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 
 
-typedef std::pair<string,int> valAndLen;
 class dissem
 {
 private:
@@ -20,7 +20,7 @@ private:
     vector<string> objData;
     OpCodes *opCodes;
     map<int,string> symbols; //Address and the associated Symbol 
-    map<int, valAndLen> literals; //Address and the associated literal
+    map<int, pair<string, int>> literals; //Address and the associated literal
     map<char, int> registers; //Register 
 
     //methods

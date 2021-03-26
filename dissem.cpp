@@ -38,35 +38,58 @@ dissem::dissem(string objFileName, string symFileName){
         objData.push_back(temp);
     }
 
-    // //Read & store Symbol table and Ltieral table into maps
-    // int counter = 0;
-    // while (symbolFile.good()){
-    //     getline(symbolFile, temp);
+    //Read & store Symbol table and Ltieral table into maps
+    int counter = 0;
+    string arr[3];
+    while (symbolFile.good()){
+        getline(symbolFile, temp);
 
-    //     if(temp[0] == 'S' || temp[0]=='-') continue;
-    //     if(temp[0]== ' ') break;
-    //     cout<< temp << endl;
-    // }
-    // while (symbolFile.good()){
-    //     getline(symbolFile, temp);
-    //     if(temp[0] == 'N' || temp[0]=='-') continue;
-    //     cout<< temp[1] << endl;
+        if(temp[0] == 'S' || temp[0]=='-') continue;
+        if(temp.size() == 0) break;
+
+
+        //using this to split string by space
+        istringstream ss(temp);
+        
+        while(ss.good() && counter <2) {
+            ss >> arr[counter];
+            counter++;
+        }
+        symbols[stoi(arr[1], NULL, 16)] = arr[0];
+        counter = 0;
+    }
+
+    while (symbolFile.good()){
+        getline(symbolFile, temp);
+        if(temp[0] == 'N' || temp[0]=='-') continue;
+        
+        istringstream ss(temp);
+
+        while(ss.good() & counter <3) {
+            ss >> arr[counter];
+            counter++;
+        }
+        literals[stoi(arr[2], NULL, 16)] = pair<string,int>(arr[0], stoi(arr[1]));
+        counter = 0;
+    }
+
+    
+    //Traversin through each row in the object file
+    
+    // for(int i=0; i < objData.size(); i++) {
+    //     if(objData[i][0] == 'H'){
+    //         headRecordAnalyzer(i);
+    //     } else if (objData[i][0] == 'T'){
+    //         if(i==1) currentAddress = stoi(objData[i].substr(1,6),NULL, 16);
+    //         textRecordAnalyzer(i);
+    //     } else if (objData[i][0] == 'E'){
+    //         endRecordAnalyzer(i);
+    //     }
         
     // }
     
-    //Traversin through each row in the object file
-    for(int i=0; i < objData.size(); i++) {
-        if(objData[i][0] == 'H'){
-            headRecordAnalyzer(i);
-        } else if (objData[i][0] == 'T'){
-            if(i==1) currentAddress = stoi(objData[i].substr(1,6),NULL, 16);
-            textRecordAnalyzer(i);
-        } else if (objData[i][0] == 'E'){
-            endRecordAnalyzer(i);
-        }
-        
-    }
 
+    
 
     objFile.close();
     symbolFile.close();
