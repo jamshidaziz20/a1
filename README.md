@@ -1,5 +1,6 @@
-**Name:** Jamshid Aziz
-**Partner:** Chance Daily
+// **Developed by** 
+// Name: **Jamshid Aziz**   ID:  821340982 
+// Name **Chance Daily**    ID:  821689902
 
 
 The following are the functions from _dissem.cpp_ file

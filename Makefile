@@ -1,3 +1,7 @@
+# Developed by 
+# Name: Jamshid Aziz   ID:  821340982 
+# Name Chance Daily    ID:  821689902
+
 # CXX Make variable for compiler
 CXX=g++
 # Make variable for compiler options

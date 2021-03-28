@@ -1,3 +1,7 @@
+// Developed by 
+// Name: Jamshid Aziz   ID:  821340982 
+// Name Chance Daily    ID:  821689902
+
 
 #include "dissem.h"
 
