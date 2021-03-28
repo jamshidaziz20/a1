@@ -6,6 +6,7 @@
 #include <string>
 #include "OpCodes.h"
 #include <map>
+#include <unordered_map>
 #include <iomanip>
 #include <sstream>
 
