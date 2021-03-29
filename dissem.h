@@ -22,7 +22,9 @@ private:
     OpCodes *opCodes;
     map<int,string> symbols; //Address and the associated Symbol 
     map<int, pair<string, int>> literals; //Address and the associated literal
-    map<char, int> registers; //Register 
+    map<int, char> registers; //Register position
+    map<char,int> regValue; //Register values
+    vector<string> opCodeNames;
 
     //methods
     void headRecordAnalyzer(int row);
@@ -31,6 +33,7 @@ private:
     void analyzeFormat2(int objCode, string opName);
     void analyzeFormat3(int objCode, string opName);
     void analyzeFormat4(int objCode, string opName);
+    string getAddress(int flags, int objCode);
 public:
     dissem();
     dissem(string objFileName, string symFileName);
