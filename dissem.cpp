@@ -223,7 +223,7 @@ void dissem::textRecordAnalyzer(int row) {
            int value = stoi(literals[currentAddress].first.substr(3,length), NULL, 16); //removes the =x'' part
            string literal = literals[currentAddress].first;
            
-           outputFile << "\t\t*\t\t" << literal << "\t\t" << uppercase << hex << setfill('0') << setw(length)<< value;
+           outputFile << "\t\t" << "*\t\t" << literal << "\t\t" << uppercase << hex << setfill('0') << setw(length)<< value;
        
        //Sample: 0855              *       =X'000001'      000001
        }
@@ -248,7 +248,7 @@ void dissem::textRecordAnalyzer(int row) {
 
 void dissem::endRecordAnalyzer(int row) { 
     int startAddress = stoi(objData[row].substr(1,6), NULL, 16);
-    outputFile   << "\t\t\t" <<  "END" << "\t\t" <<symbols[startAddress] <<endl ;
+    outputFile   << "\t\t" <<  "END" << "\t\t" <<symbols[startAddress] <<endl ;
     
 }
 
