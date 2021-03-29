@@ -220,11 +220,15 @@ void dissem::textRecordAnalyzer(int row) {
        opCodeName = opCodes->getSymbolName(firstThree);
        //printf("opCodeName is: %s\n",opCodeName);
        objectCode = stoi(objData[row].substr(i,format*2), NULL, 16);
+       bool literalsExist = literals.count(currentAddress) > 0; 
+       bool symbolsExist = symbols.count(currentAddress) > 0;
+
+        //Writing the address to the file
+        outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
 
        //checking if literals exist in the current address
-       if((literals.count(currentAddress) > 0)){
+       if(literalsExist){
            outputFile << "\t\t\tLTORG\n"; 
-           outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
 
            int length = literals[currentAddress].second;
            int value = stoi(literals[currentAddress].first.substr(3,length), NULL, 16); //removes the =x'' part
@@ -234,21 +238,19 @@ void dissem::textRecordAnalyzer(int row) {
 
            //Sample: 0855              *       =X'000001'      000001
 
-       } else {
-            //Writing the address to the file
-            outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
-
-       }
+       } 
 
        //if the address exists in the symbol table print the symbol name
-        if(symbols.count(currentAddress) > 0) {
-            outputFile << "\t\t" << symbols[currentAddress] << "\t\t";
+        if(symbolsExist) {
+            outputFile << "\t\t" << symbols[currentAddress];
         }       
-
-       if (format == 2)         analyzeFormat2(objectCode,opCodeName);
-       else if (format == 3)    analyzeFormat3(objectCode,opCodeName);
-       else if (format == 4)    analyzeFormat4(objectCode,opCodeName);
-       else                     cout << "Unknown Format" << endl;
+       
+       if(!literalsExist){
+        if (format == 2)         analyzeFormat2(objectCode,opCodeName);
+        else if (format == 3)    analyzeFormat3(objectCode,opCodeName);
+        else if (format == 4)    analyzeFormat4(objectCode,opCodeName);
+        else                     cout << "Unknown Format" << endl;
+       }
 
        
         // Debug purposes
