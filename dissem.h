@@ -36,7 +36,7 @@ private:
     void analyzeFormat2(int objCode, string opName);
     void analyzeFormat3(int objCode, string opName);
     void analyzeFormat4(int objCode, string opName);
-    string getAddress(int flags, int objCode);
+    void loadRegister(char reg, int objCode, int format);
 public:
     dissem();
     dissem(string objFileName, string symFileName);
