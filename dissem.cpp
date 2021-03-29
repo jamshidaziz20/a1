@@ -1,3 +1,7 @@
+// Developed by 
+// Name: Jamshid Aziz   ID:  821340982 
+// Name Chance Daily    ID:  821689902
+
 
 #include "dissem.h"
 
@@ -122,7 +126,7 @@ void dissem::headRecordAnalyzer(int row) {
 
      outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress  
             << setfill(' ')<< "\t\t" << progName
-            << "\t\t" <<  "START" << "\t\t" << 0<< endl ;
+            << "\t\t\t\t" <<  "START" << "\t\t\t" << 0<< endl ;
     
 }
 
@@ -187,7 +191,7 @@ void dissem::textRecordAnalyzer(int row) {
             
         outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress  
             << setfill(' ')<< "\t\t" << itter->second
-            << "\t\t" << "RESW\t\t" << dec << itter->first/3 <<endl ;
+            << "\t" << "RESW\t\t\t" << dec << itter->first/3 <<endl ;
 
         currentAddress += itter->first;
 
@@ -208,25 +212,29 @@ void dissem::textRecordAnalyzer(int row) {
        //printf("opCodeName is: %s\n",opCodeName);
        objectCode = stoi(objData[row].substr(i,format*2), NULL, 16);
 
-       //Writing the address to the file
-       outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
+       //checking if literals exist in the current address
+       if((literals.count(currentAddress) > 0)){
+           outputFile << "\t\t\tLTORG\n"; 
+           outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
 
-       //if the address exists in the symbol table print the symbol name
-        if(symbols.count(currentAddress) > 0) {
-            outputFile << "\t\t" << symbols[currentAddress] << "\t\t";
-        }      
-
-       //if the address exists in the literal table print 
-       else if(literals.count(currentAddress) > 0) {
-           
            int length = literals[currentAddress].second;
            int value = stoi(literals[currentAddress].first.substr(3,length), NULL, 16); //removes the =x'' part
            string literal = literals[currentAddress].first;
            
-           outputFile << "\t\t" << "*\t\t" << literal << "\t\t" << uppercase << hex << setfill('0') << setw(length)<< value;
-       
-       //Sample: 0855              *       =X'000001'      000001
+           outputFile << "\t\t\t" << "*\t\t\t" << literal << "\t\t\t" << uppercase << hex << setfill('0') << setw(length)<< value;
+
+           //Sample: 0855              *       =X'000001'      000001
+
+       } else {
+            //Writing the address to the file
+            outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
+
        }
+
+       //if the address exists in the symbol table print the symbol name
+        if(symbols.count(currentAddress) > 0) {
+            outputFile << "\t\t" << symbols[currentAddress] << "\t\t";
+        }       
 
        if (format == 2)         analyzeFormat2(objectCode,opCodeName);
        else if (format == 3)    analyzeFormat3(objectCode,opCodeName);
@@ -248,7 +256,7 @@ void dissem::textRecordAnalyzer(int row) {
 
 void dissem::endRecordAnalyzer(int row) { 
     int startAddress = stoi(objData[row].substr(1,6), NULL, 16);
-    outputFile   << "\t\t" <<  "END" << "\t\t" <<symbols[startAddress] <<endl ;
+    outputFile   << "\t\t\t" <<  "END" << "\t\t\t" <<symbols[startAddress] <<endl ;
     
 }
 
