@@ -100,7 +100,16 @@ dissem::dissem(string objFileName, string symFileName){
         }
         
     }
-    
+    regValue = {
+                 {'A', 0},{'X', 0},{'L', 0},{'B', 0},{'S', 0},{'T', 0},{'F', 0}
+    };
+    /*registers[1]='A';
+    registers[2]='X';
+    registers[3]='L';
+    registers[4]='B';
+    registers[5]='S';
+    registers[6]='T';
+    registers[7]='F';*/
     objFile.close();
     symbolFile.close();
     outputFile.close();
@@ -200,6 +209,7 @@ void dissem::textRecordAnalyzer(int row) {
        firstThree = stoi(objData[row].substr(i,3), NULL, 16);
        format = opCodes->getFormat(firstThree);
        opCodeName = opCodes->getSymbolName(firstThree);
+       //printf("opCodeName is: %s\n",opCodeName);
        objectCode = stoi(objData[row].substr(i,format*2), NULL, 16);
        bool literalsExist = literals.count(currentAddress) > 0; 
        bool symbolsExist = symbols.count(currentAddress) > 0;
@@ -254,15 +264,101 @@ void dissem::endRecordAnalyzer(int row) {
 
 
 void dissem::analyzeFormat2(int objCode, string opName){
-    outputFile << "Format2";
+    char reg = 'Z'; //z is just a placeholder for debugging
+   // reg = registers.at(objCode & 0xF0);
+    switch (objCode & 0xF0){        //used a switch statement because I struggle with maps in C++
+        case 0:
+            reg = 'A';
+            break;
+        case 1:
+            reg = 'X';
+            break;
+        case 2:
+            reg = 'L';
+            break;
+        case 3:
+            reg = 'B';
+            break;
+        case 4:
+            reg = 'S';
+            break;
+        case 5:
+            reg = 'T';
+            break;
+        case 6:
+            reg = 'F';
+            break;    
+    }
+    outputFile << "\t\t" << "CLEAR" << "\t\t" << reg << "\t\t\t" << objCode;
 }
 
-void dissem::analyzeFormat3(int objCode, string opName) {
-    outputFile << "Format2";
+void dissem::analyzeFormat3(int objCode, string opName) { //opname doesnt work
+    int flags = (objCode & 258048) >> 12;
+    int opCode = (objCode & 0xFC0000) >> 16;
+    if (opCode == 0 || opCode == 0x70 ||opCode == 0x08 || opCode == 0x6C ||opCode == 0x74 ||opCode == 04){
+        
+        map<char,int>::iterator itr;
+        itr = regValue.find('A');
+        if (itr !=regValue.end())
+            itr->second = 0;//address
+    }
+    else if (opCode == 0x68){
 
+    }
+    //string symbol = getAddress(flags,objCode);
+    //string symbol = "SYMBOL";
+    //cout <<"analyze - flags is: " << flags << " objCode is: " << uppercase << hex << objCode << endl;
+    //outputFile << "\t\t\t" << opName << /*"\t\t" << symbol << */"\t\t\t" << objCode;
 }
 
 void dissem::analyzeFormat4(int objCode, string opName) {
-    outputFile << "Format2";
+    int flags = (66060288 & objCode) >> 20;
+}
 
+string dissem::getAddress(int flags, int objCode){
+    string address;
+    if(flags==48 || flags == 32 || flags == 16 || flags == 56){
+        if(flags==56){  //checks for X flag
+            //disp+X
+        }
+        else{
+            //disp
+            address = symbols.at(objCode & 0xFFF); //bitwise AND operation retrieves the 12 bits representing "disp"
+            //printf("object mask is: %d\n",objCode & 0xFFF);
+            //printf("objCode: %d, str address: %s\n",objCode,address);
+        }
+    }
+    else if(flags == 49 || flags == 33 || flags == 17 || flags == 57){
+        if(flags==57){  //checks for X flag
+            //addr+X
+        }
+        else{
+            //addr
+            address = symbols.at(objCode & 0xFFFFF);    //bitwise AND operation retrieves the 20 bits representing "address"
+            //printf("objCode: %d, str address: %s\n",objCode,address);
+        }
+    }
+    else if(flags == 50 || flags == 34 || flags == 18 || flags == 58){
+        if(flags==58){  //checks for X flag
+            //PC+disp+X
+        }
+        else{
+            //PC+disp
+            address = symbols.at((objCode & 0xFFFFF)+currentAddress+3);
+            //printf("objCode: %d, str address: %s\n",objCode,address);
+        }
+    }
+    else if(flags == 52 || flags == 36 || flags == 20 || flags == 60){
+        if(flags==60){  //checks for X flag
+            //B+disp+X
+        }
+        else{
+            //B+disp
+           // address = symbols.at((objCode & 0xFFFFF)+)
+        }
+    }
+    else{
+        printf("error, flags not recognized\n");
+    }
+    return address;
 }
