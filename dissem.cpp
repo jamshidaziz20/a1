@@ -224,12 +224,12 @@ void dissem::textRecordAnalyzer(int row) {
        bool symbolsExist = symbols.count(currentAddress) > 0;
 
         //Writing the address to the file
-        outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
+        
 
        //checking if literals exist in the current address
        if(literalsExist){
            outputFile << "\t\t\tLTORG\n"; 
-
+            outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
            int length = literals[currentAddress].second;
            int value = stoi(literals[currentAddress].first.substr(3,length), NULL, 16); //removes the =x'' part
            string literal = literals[currentAddress].first;
@@ -239,6 +239,9 @@ void dissem::textRecordAnalyzer(int row) {
            //Sample: 0855              *       =X'000001'      000001
 
        } 
+       else{
+           outputFile << setfill('0')<< setw(4)  << uppercase << hex << currentAddress;
+       }
 
        //if the address exists in the symbol table print the symbol name
         if(symbolsExist) {
@@ -305,9 +308,10 @@ void dissem::analyzeFormat2(int objCode, string opName){
 }
 
 void dissem::analyzeFormat3(int objCode, string opName) {
-
+    //anytime the expression (objCode & 0xFFF) is used, that is simply the disp bits from the format 3 object code
+    //try-catch blocks are used to search through the map contain literals and the map containing symbols.
+    //an error is thrown when the first search yields no results, leading the program to search the second map
     int flags = (objCode & 258048) >> 12;
-    int opCode = (objCode & 0xFC0000) >> 16;
     char reg;
     string symbol;
     if (opName=="LDA"){ //checks if value needs to be loaded into a register
@@ -332,27 +336,34 @@ void dissem::analyzeFormat3(int objCode, string opName) {
         loadRegister('X', objCode, 3);
     }
     if(flags==48 || flags == 32 || flags == 16 || flags == 56){ //TA = disp or TA = disp + (X)
-        if(flags==56){  //checks for X flag
+        if(flags==56){  //checks for indexed addressing
             //disp+X
-            symbol = symbols.at((objCode & 0xFFF)+regValue.at('X'));
+            symbol = symbols.at((objCode & 0xFFF)+regValue.at('X')) + ",X";
         }
         else if(flags==32){//checks for indirect addressing
-
+            try{        
+                symbol = symbols.at(objCode & 0xFFF);
+                
+            }
+            catch(...){
+                for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
+                    itr != literals.end(); ++itr)
+                if (itr->first==(objCode & 0xFFF)){
+                    symbol=itr->second.first;
+                }
+            }
         }
         else if(flags==16){//checks for constant
             symbol = "#"+ to_string(objCode & 0xFFF);
         }
         else{//disp      
-            symbol = symbols.at(objCode & 0xFFF); //bitwise AND operation retrieves the 12 bits representing "disp"
+            symbol = symbols.at(objCode & 0xFFF);
         }
     }
     else if(flags == 50 || flags == 34 || flags == 18 || flags == 58){//TA = PC + disp or TA = PC + disp + (X)
-        if(flags==58){  //checks for X flag
+        if(flags==58){  //checks for indexed addressing
             //PC+disp+X
-           
-            //cout<< "X is: "<< regValue.at('X') <<endl;
-           // cout<< ((currentAddress+3+(objCode & 0xFFF))&0xFFF) << " objCode is: "<< uppercase<< hex <<objCode << endl;
-           // symbol = symbols.at((currentAddress+3+(objCode & 0xFFF)+regValue.at('X'))&0xFFF); //two bitwise & operations here to get rid of carryover from addition
+           symbol = symbols.at((currentAddress+3+(objCode & 0xFFF)+regValue.at('X'))&0xFFF) + ",X"; //two bitwise & operations here to get rid of carryover from addition
         }
         else if(flags==34){//checks for indirect addressing
 
@@ -361,25 +372,26 @@ void dissem::analyzeFormat3(int objCode, string opName) {
         
         }
         else{//PC+disp
-            try{        //try-catch used because literals are stored in a 2D map and symbols in a 1D map
-                symbol = symbols.at((objCode & 0xFFF)+currentAddress+3);
+            try{        
+                symbol = symbols.at(((objCode & 0xFFF)+currentAddress+3)&0xFFF);
+                
             }
             catch(...){
-                    for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
-                        itr != literals.end(); ++itr)
-                        if (itr->first==((objCode & 0xFFF)+currentAddress+3)){
-                            symbol=itr->second.first;
-                        }
+                for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
+                    itr != literals.end(); ++itr)
+                if (itr->first==((objCode & 0xFFF)+currentAddress+3)){
+                    symbol=itr->second.first;
+                }
             }
         }
     }
     else if(flags == 52 || flags == 36 || flags == 20 || flags == 60){
-        if(flags==60){  //checks for X flag
+        if(flags==60){  //checks for indexed addressing
             //B+disp+X
-            //symbol = symbols.at((objCode & 0xFFF)+regValue.at('X')+regValue.at('B'));
+            symbol = symbols.at((regValue.at('B')+(objCode & 0xFFFFF)+regValue.at('X'))&0xFFFFF) + ",X";
         }
         else if(flags==36){//checks for indirect addressing
-                symbol = symbols.at((objCode & 0xFFF)+regValue.at('B'));
+                symbol = "@" + symbols.at((objCode & 0xFFF)+regValue.at('B'));
         }
         else{
             //B+disp
@@ -389,18 +401,15 @@ void dissem::analyzeFormat3(int objCode, string opName) {
     else{
         symbol = "";
     }
-    //if(symbol != ""){
-        outputFile << "\t\t\t" << opName << "\t\t\t" << symbol << "\t\t\t\t" << objCode;
-        //cout<< "opName is: " << opName << endl;
+        outputFile << "\t\t\t" << opName << "\t\t\t" << symbol << "\t\t\t\t" << setfill('0')<< setw(6)<< objCode;
         if (opName=="LDB")
             outputFile << "\n\t\t\t" << "BASE" << "\t\t\t" << symbol.erase(0,1);
-    //}
 }
 
 void dissem::analyzeFormat4(int objCode, string opName) {
     int flags = (66060288 & objCode) >> 20;
     int opCode = (4227858432 & objCode) >> 24;
-    string symbol = "SMBL4";
+    string symbol = "SMBL4";        //temporarily set to SMBL4
     if (opName=="LDA"){ //checks if value needs to be loaded into a register
         loadRegister('A', objCode, 4);
     }
@@ -424,39 +433,41 @@ void dissem::analyzeFormat4(int objCode, string opName) {
     }
     if(flags==49){  //TA = addr
         try{        //try-catch used because literals are stored in a 2D map and symbols in a 1D map
-                symbol = symbols.at(objCode & 0xFFFFF);
+            symbol = symbols.at(objCode & 0xFFFFF);
+        }
+        catch(...){
+            for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
+                itr != literals.end(); ++itr)
+            if (itr->first==(objCode & 0xFFFFF)){
+                symbol=itr->second.first;
             }
-            catch(...){
-                    for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
-                        itr != literals.end(); ++itr)
-                        if (itr->first==(objCode & 0xFFFFF)){
-                            symbol=itr->second.first;
-                        }
-            }
+        }
     }
     else if(flags==33){//checks for indirect addressing
-            
+        try{        //try-catch used because literals are stored in a 2D map and symbols in a 1D map
+            symbol = "@" + symbols.at((objCode & 0xFFFFF)); 
+        }
+        catch(...){
+            for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
+                itr != literals.end(); ++itr)
+            if (itr->first==(objCode & 0xFFFFF)){
+                symbol= "@" + itr->second.first;
+            }
+        }      
     }
     else if(flags==17){//checks for constant
         symbol = "#"+ symbols.at(objCode & 0xFFFFF);
     }
-    else{
-        //disp
-        symbol = symbols.at(objCode & 0xFFFFF); //bitwise AND operation retrieves the 12 bits representing "disp"
-        //printf("object mask is: %d\n",objCode & 0xFFF);
-        //printf("objCode: %d, str address: %s\n",objCode,address);
+    else{//indexed addressing
+        //TA = addr + X
+        symbol = symbols.at((currentAddress+4+(objCode & 0xFFFFF)+regValue.at('X'))&0xFFFFF) + ",X"; //2nd bitwise is to account for carryover in addition when calculating TA
     }
-    if(symbol != ""){
-        outputFile << "+"+ opName << "\t\t\t" << symbol << "\t\t\t\t" << objCode;
-        //cout<< "opName is: " << opName << endl;
+        outputFile << "\t+"+ opName << "\t\t\t" << symbol << "\t\t\t\t" << setfill('0')<< setw(8)<< objCode;
         if (opName=="LDB")
             outputFile << "\n\t\t\t" << "BASE" << "\t\t\t" << symbol.erase(0,1);
-    }
-    //outputFile << opName << "\t\t\t" << symbol << "\t\t\t\t" << objCode;
 }
 void dissem::loadRegister(char reg, int objCode, int format){
-    //cout<<"reg is "<<reg<<endl;
-    if (format==3){//https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
+    if (format==3){         //solution for updating registers is inspired by this posting https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
         std::map<char, int>::iterator it = regValue.find(reg); 
             it->second=(objCode & 0xFFF);
     }
@@ -465,24 +476,3 @@ void dissem::loadRegister(char reg, int objCode, int format){
             it->second=(objCode & 0xFFFFF);
     }
 }
-/*
-void dissem::loadRegister(char reg, int objCode, int format){        //loads given value into register
-    map<char, int>::const_iterator it = regValue.find(reg); //idea to update map value from https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
-        if (it != regValue.end())
-            if (format==3){
-                cout<<reg<< " reg found " << endl;
-                it->second = (objCode & 0xFFF);
-                cout<<reg<< " loaded with " << (objCode & 0xFFF) << endl;
-            }
-            else{//for format 4
-                cout<<reg<< " reg found " << endl;
-                it->second = (objCode & 0xFFFFF);
-                cout<<reg<< " loaded with " << (objCode & 0xFFFFF) << endl;
-            }
-    
-}
- for(map<char, int >::const_iterator it = regValue.begin();
-             it != regValue.end(); ++it)
-                {
-                std::cout << it->first << " " << it->second<< "\n";
-                }*/
