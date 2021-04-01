@@ -42,7 +42,7 @@ dissem::dissem(string objFileName, string symFileName){
     opCodes = new OpCodes;
     objFile.open(objFileName, ios::in);
     symbolFile.open(symFileName, ios::in);
-    outputFile.open("temp.lst", ios::out);
+    outputFile.open("out.lst", ios::out);
 
     //checking if file is open
     if(!objFile.is_open() || !symbolFile.is_open() ) {
@@ -277,7 +277,6 @@ void dissem::endRecordAnalyzer(int row) {
 
 void dissem::analyzeFormat2(int objCode, string opName){
     char reg = 'Z'; //z is just a placeholder for debugging
-   // reg = registers.at(objCode & 0xF0);
     switch (objCode & 0xF0){        //used a switch statement because I struggle with maps in C++
         case 0:
             reg = 'A';
@@ -341,22 +340,23 @@ void dissem::analyzeFormat3(int objCode, string opName) {
             symbol = symbols.at((objCode & 0xFFF)+regValue.at('X')) + ",X";
         }
         else if(flags==32){//checks for indirect addressing
-            try{        
-                symbol = symbols.at(objCode & 0xFFF);
-                
+            bool isInLiterals = literals.count(objCode & 0xFFF) > 0;        //these booleans and if statements check if the address is in literals,symbols, or registers
+            bool isInSymbols = symbols.count(objCode & 0xFFF) > 0;          //and if they are present, the if statement will extract the name at that address in their 
+            bool isInRegisters = registers.count(objCode & 0xFFF) > 0;      //respective data structure.
+            if (isInLiterals) {                                             //this idea is used a few times through analyzeformat3 and analyzeformat4
+                symbol = literals[objCode & 0xFFF].first;
             }
-            catch(...){
-                for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
-                    itr != literals.end(); ++itr)
-                if (itr->first==(objCode & 0xFFF)){
-                    symbol=itr->second.first;
-                }
+            else if (isInSymbols) {
+                symbol = symbols[objCode & 0xFFF];
+            }
+            else if (isInLiterals) {
+                symbol = registers[objCode & 0xFFF];
             }
         }
         else if(flags==16){//checks for constant
             symbol = "#"+ to_string(objCode & 0xFFF);
         }
-        else{//disp      
+        else{//disp     
             symbol = symbols.at(objCode & 0xFFF);
         }
     }
@@ -366,15 +366,36 @@ void dissem::analyzeFormat3(int objCode, string opName) {
            symbol = symbols.at((currentAddress+3+(objCode & 0xFFF)+regValue.at('X'))&0xFFF) + ",X"; //two bitwise & operations here to get rid of carryover from addition
         }
         else if(flags==34){//checks for indirect addressing
-
+            bool isInLiterals = literals.count(objCode & 0xFFF) > 0; 
+            bool isInSymbols = symbols.count(objCode & 0xFFF) > 0;
+            bool isInRegisters = registers.count(objCode & 0xFFF) > 0;
+            if (isInLiterals) { 
+                symbol = literals[(objCode & 0xFFF)].first;
+            }
+            else if (isInSymbols) {
+                symbol = symbols[(objCode & 0xFFF)];
+            }
+            else if (isInLiterals) {
+                symbol = registers[(objCode & 0xFFF)];
+            }
         }
         else if(flags==18){//checks for immediate addressing
-        
+            bool isInLiterals = literals.count(objCode & 0xFFF) > 0; 
+            bool isInSymbols = symbols.count(objCode & 0xFFF) > 0;
+            bool isInRegisters = registers.count(objCode & 0xFFF) > 0;
+            if (isInLiterals) { 
+                symbol = literals[(objCode & 0xFFF)].first;
+            }
+            else if (isInSymbols) {
+                symbol = symbols[(objCode & 0xFFF)];
+            }
+            else if (isInLiterals) {
+                symbol = registers[(objCode & 0xFFF)];
+            }
         }
         else{//PC+disp
             try{        
-                symbol = symbols.at(((objCode & 0xFFF)+currentAddress+3)&0xFFF);
-                
+                symbol = symbols.at(((objCode & 0xFFF)+currentAddress+3)&0xFFF);    
             }
             catch(...){
                 for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
@@ -409,7 +430,7 @@ void dissem::analyzeFormat3(int objCode, string opName) {
 void dissem::analyzeFormat4(int objCode, string opName) {
     int flags = (66060288 & objCode) >> 20;
     int opCode = (4227858432 & objCode) >> 24;
-    string symbol = "SMBL4";        //temporarily set to SMBL4
+    string symbol = "SMBL4";        //temporarily set to SMBL4 for debugging purposes 
     if (opName=="LDA"){ //checks if value needs to be loaded into a register
         loadRegister('A', objCode, 4);
     }
@@ -432,7 +453,7 @@ void dissem::analyzeFormat4(int objCode, string opName) {
         loadRegister('X', objCode, 4);
     }
     if(flags==49){  //TA = addr
-        try{        //try-catch used because literals are stored in a 2D map and symbols in a 1D map
+        try{
             symbol = symbols.at(objCode & 0xFFFFF);
         }
         catch(...){
@@ -444,23 +465,36 @@ void dissem::analyzeFormat4(int objCode, string opName) {
         }
     }
     else if(flags==33){//checks for indirect addressing
-        try{        //try-catch used because literals are stored in a 2D map and symbols in a 1D map
-            symbol = "@" + symbols.at((objCode & 0xFFFFF)); 
-        }
-        catch(...){
-            for(map<int, pair<string, int>>::const_iterator itr = literals.begin();//idea for parsing 2D map from https://stackoverflow.com/questions/14070940/how-can-i-print-out-c-map-values
-                itr != literals.end(); ++itr)
-            if (itr->first==(objCode & 0xFFFFF)){
-                symbol= "@" + itr->second.first;
+            bool isInLiterals = literals.count(objCode & 0xFFFFF) > 0; 
+            bool isInSymbols = symbols.count(objCode & 0xFFFFF) > 0;
+            bool isInRegisters = registers.count(objCode & 0xFFFFF) > 0;
+            if (isInLiterals) { 
+                symbol = literals[(objCode & 0xFFFFF)].first;
             }
-        }      
+            else if (isInSymbols) {
+                symbol = symbols[(objCode & 0xFFFFF)];
+            }
+            else if (isInLiterals) {
+                symbol = registers[(objCode & 0xFFFFF)];
+            }      
     }
     else if(flags==17){//checks for constant
         symbol = "#"+ symbols.at(objCode & 0xFFFFF);
     }
     else{//indexed addressing
         //TA = addr + X
-        symbol = symbols.at((currentAddress+4+(objCode & 0xFFFFF)+regValue.at('X'))&0xFFFFF) + ",X"; //2nd bitwise is to account for carryover in addition when calculating TA
+            bool isInLiterals = literals.count(((objCode & 0xFFFFF)+regValue.at('X'))&0xFFFFF) > 0; 
+            bool isInSymbols = symbols.count(((objCode & 0xFFFFF)+regValue.at('X'))&0xFFFFF) > 0;
+            bool isInRegisters = registers.count(((objCode & 0xFFFFF)+regValue.at('X'))&0xFFFFF) > 0;
+            if (isInLiterals) { 
+                symbol = literals[objCode & 0xFFF].first + ",X";
+            }
+            else if (isInSymbols) {
+                symbol = symbols[objCode & 0xFFF] + ",X";
+            }
+            else if (isInLiterals) {
+                symbol = registers[objCode & 0xFFF] + ",X";
+            }
     }
         outputFile << "\t+"+ opName << "\t\t\t" << symbol << "\t\t\t\t" << setfill('0')<< setw(8)<< objCode;
         if (opName=="LDB")
